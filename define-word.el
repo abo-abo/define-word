@@ -23,6 +23,7 @@
 (defconst define-word-limit 10
   "Maximum amount of results to display.")
 
+;;;###autoload
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
@@ -54,6 +55,7 @@
      nil
      t t)))
 
+;;;###autoload
 (defun define-word-at-point ()
   "Use `define-word' to define word at point.
 When the region is active, define the marked phrase."
