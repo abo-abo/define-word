@@ -30,11 +30,11 @@
 ;; page, and display it with `message'.
 ;;
 ;; The HTML page is retrieved asynchronously, using `url-retrieve'.
+;;
+;;; Code:
 
 (require 'url-parse)
 (require 'url-http)
-
-;;; Code:
 
 (defconst define-word-limit 10
   "Maximum amount of results to display.")
