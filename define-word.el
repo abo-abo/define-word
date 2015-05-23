@@ -82,7 +82,8 @@ When the region is active, define the marked phrase."
         (buffer-substring-no-properties
          (region-beginning)
          (region-end)))
-    (define-word (thing-at-point 'word t))))
+    (define-word (substring-no-properties
+                  (thing-at-point 'word)))))
 
 (provide 'define-word)
 
