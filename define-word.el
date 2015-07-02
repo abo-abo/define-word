@@ -43,9 +43,8 @@
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
-  (when (string-match "[A-Za-z]+s\\'" word)
-    (setq word (substring word 0 -1)))
-  (let ((link (concat "http://wordnik.com/words/" (downcase word))))
+  (let ((maybe-plural (string-match "[A-Za-z]+s\\'" word))
+        (link (concat "http://wordnik.com/words/" (downcase word))))
     (save-match-data
       (url-retrieve
        link
@@ -66,11 +65,16 @@
                                (buffer-substring-no-properties beg (match-beginning 0)))
                        results)))
              (setq results (nreverse results))
-             (when (> (length results) define-word-limit)
-               (setq results (cl-subseq results 0 define-word-limit)))
-             (if results
-                 (message (mapconcat #'identity results "\n"))
-               (message "0 definitions found")))))
+             (cond ((= 0 (length results))
+                    (message "0 definitions found"))
+                   ((and (= 1 (length results))
+                         maybe-plural
+                         (string-match "Plural form of" (car results)))
+                    (define-word (substring word 0 -1)))
+                   (t
+                    (when (> (length results) define-word-limit)
+                      (setq results (cl-subseq results 0 define-word-limit)))
+                    (message (mapconcat #'identity results "\n")))))))
        nil
        t t))))
 
