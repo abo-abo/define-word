@@ -36,15 +36,23 @@
 (require 'url-parse)
 (require 'url-http)
 
+(defgroup define-word nil
+  "Define word at point using an online dictionary."
+  :group 'convenience
+  :prefix "define-word-")
+
 (defconst define-word-limit 10
   "Maximum amount of results to display.")
+
+(defcustom define-word-unpluralize t
+  "When non-nil, change the word to singular when appropriate.
+The rule is that all definitions must contain \"Plural of\".")
 
 ;;;###autoload
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
-  (let ((maybe-plural (string-match "[A-Za-z]+s\\'" word))
-        (link (concat "http://wordnik.com/words/" (downcase word))))
+  (let ((link (concat "http://wordnik.com/words/" (downcase word))))
     (save-match-data
       (url-retrieve
        link
@@ -67,10 +75,10 @@
              (setq results (nreverse results))
              (cond ((= 0 (length results))
                     (message "0 definitions found"))
-                   ((and (= 1 (length results))
-                         maybe-plural
-                         (string-match "Plural form of" (car results)))
-                    (define-word (substring word 0 -1)))
+                   ((and define-word-unpluralize
+                         (cl-every (lambda (x) (string-match "[Pp]\\(?:lural\\|l\\.\\).*of \\(.*\\)\\." x))
+                                   results))
+                    (define-word (match-string 1 (car (last results)))))
                    (t
                     (when (> (length results) define-word-limit)
                       (setq results (cl-subseq results 0 define-word-limit)))
