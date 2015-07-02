@@ -43,6 +43,8 @@
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
+  (when (string-match "[A-Za-z]+s\\'" word)
+    (setq word (substring word 0 -1)))
   (let ((link (concat "http://wordnik.com/words/" (downcase word))))
     (save-match-data
       (url-retrieve
