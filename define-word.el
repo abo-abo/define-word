@@ -51,7 +51,7 @@ The rule is that all definitions must contain \"Plural of\".")
 ;;;###autoload
 (defun define-word (word)
   "Define WORD using the Wordnik website."
-  (interactive (list (read-string "Word: ")))
+  (interactive (list (read-string "Word: " (thing-at-point 'word t))))
   (let ((link (concat "http://wordnik.com/words/" (downcase word))))
     (save-match-data
       (url-retrieve
