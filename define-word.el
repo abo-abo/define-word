@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; This package will send an anonymous request to http://wordnik.com/
+;; This package will send an anonymous request to https://wordnik.com/
 ;; to get the definition of word or phrase at point, parse the resulting HTML
 ;; page, and display it with `message'.
 ;;
@@ -52,7 +52,7 @@ The rule is that all definitions must contain \"Plural of\".")
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
-  (let ((link (concat "http://wordnik.com/words/" (downcase word))))
+  (let ((link (concat "https://wordnik.com/words/" (downcase word))))
     (save-match-data
       (url-retrieve
        link
