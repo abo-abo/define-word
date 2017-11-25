@@ -41,7 +41,7 @@
   :group 'convenience
   :prefix "define-word-")
 
-(defconst define-word-limit 10
+(defvar define-word-limit 10
   "Maximum amount of results to display.")
 
 (defcustom define-word-unpluralize t
