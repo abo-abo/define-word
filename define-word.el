@@ -46,13 +46,20 @@
 
 (defcustom define-word-unpluralize t
   "When non-nil, change the word to singular when appropriate.
-The rule is that all definitions must contain \"Plural of\".")
+The rule is that all definitions must contain \"Plural of\"."
+  :type 'boolean)
+
+(defcustom define-word-url "http://wordnik.com/words/"
+  "URL for looking up words."
+  :type '(choice
+          (const :tag "http" "http://wordnik.com/words/")
+          (const :tag "https" "https://wordnik.com/words/")))
 
 ;;;###autoload
 (defun define-word (word)
   "Define WORD using the Wordnik website."
   (interactive (list (read-string "Word: ")))
-  (let ((link (concat "https://wordnik.com/words/" (downcase word))))
+  (let ((link (concat define-word-url (downcase word))))
     (save-match-data
       (url-retrieve
        link
