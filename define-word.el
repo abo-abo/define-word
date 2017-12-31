@@ -5,8 +5,8 @@
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/define-word
 ;; Version: 0.1.0
-;; Modified: 2017-12-21
-;; Package-Requires: ((emacs "25.1") (request-deferred "0.2.0"))
+;; Modified: 2017-12-31
+;; Package-Requires: ((emacs "24.1"))
 ;; Keywords: dictionary, convenience
 
 ;; This file is not part of GNU Emacs
@@ -34,11 +34,12 @@
 ;; where an url, a parsing function, and an (optional) function other
 ;; than `message' to display the results can be defined.
 ;;
-;; The HTML page is retrieved asynchronously, using `request-deferred'.
+;; The HTML page is retrieved asynchronously, using `url-retrieve-link'.
 ;;
 ;;; Code:
 
-(require 'request-deferred)
+(require 'url-parse)
+(require 'url-http)
 
 (defgroup define-word nil
   "Define word at point using an online dictionary."
@@ -53,7 +54,7 @@
 The rule is that all definitions must contain \"Plural of\".")
 
 (defcustom define-word-services
-  '((wordnik "https://wordnik.com/words/%s" define-word--parse-wordnik))
+  '((wordnik "https://wordnik.com/words/%s" define-word--parse-wordnik nil))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing [function-for-display])"
   :type '(alist :key-type (symbol :tag "Name of service")
@@ -81,14 +82,7 @@ lets the user choose service."
                         define-word-default-service)))
          (servicedata (assoc service define-word-services))
          (link (format (nth 1 servicedata) (downcase word))))
-    (deferred:$
-      (request-deferred link :parser (nth 2 servicedata))
-      (deferred:nextc it
-        (lambda (response)
-          (if-let ((err (request-response-error-thrown response)))
-              (signal (car err) (cdr err))
-            (apply (or (nth 3 servicedata) #'message)
-                   (request-response-data response))))))))
+    (url-retrieve link #'define-word--callback (append (cddr servicedata) (list link)) t t)))
 
 ;;;###autoload
 (defun define-word-at-point (arg &optional service)
@@ -107,6 +101,16 @@ In a non-interactive call SERVICE can be passed."
     (define-word (substring-no-properties
                   (thing-at-point 'word))
       service arg)))
+
+(defun define-word--callback (status parser displayfn link)
+  (let ((err (plist-get status :error)))
+    (if err (error
+             "\"%s\" %s" link
+             (downcase (nth 2 (assq (nth 2 err) url-http-codes)))))
+    (let ((results (funcall parser)))
+      (if results
+          (funcall (or displayfn #'message) results)
+        (message "0 definitions found")))))
 
 (defun define-word--parse-wordnik ()
   "Parse output from wordnik site and return formatted list"
@@ -133,10 +137,9 @@ In a non-interactive call SERVICE can be passed."
             (t
              (when (> (length results) define-word-limit)
                (setq results (cl-subseq results 0 define-word-limit)))
-             (list (mapconcat #'identity results "\n")))))))
+             (mapconcat #'identity results "\n"))))))
 
-;;; Utility functions
-(defun define-word--strings-in-colums (strings)
+(defun define-word-strings-in-colums (strings)
   "Return list of strings in columns
 Responds to the window width as ls should but may not!"
   ;; adapted from `ls-lisp-column-format' from:
