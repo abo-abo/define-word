@@ -82,8 +82,16 @@ lets the user choose service."
                             "Service: " (mapcar #'car define-word-services)))
                         define-word-default-service)))
          (servicedata (assoc service define-word-services))
-         (link (format (nth 1 servicedata) (downcase word))))
-    (url-retrieve link #'define-word--callback (append (cddr servicedata) (list link)) t t)))
+         (parser (nth 2 servicedata))
+         (displayfn (or (nth 3 servicedata) #'message))
+         (link (format (nth 1 servicedata) (downcase word)))
+         (results
+          (with-current-buffer (url-retrieve-synchronously link t t)
+            (setq results (funcall parser)))))
+    (if results
+        (funcall displayfn results)
+      (message "0 definitions found")
+      nil)))
 
 ;;;###autoload
 (defun define-word-at-point (arg &optional service)
@@ -102,16 +110,6 @@ In a non-interactive call SERVICE can be passed."
     (define-word (substring-no-properties
                   (thing-at-point 'word))
         service arg)))
-
-(defun define-word--callback (status parser displayfn link)
-  (let ((err (plist-get status :error)))
-    (if err (error
-             "\"%s\" %s" link
-             (downcase (nth 2 (assq (nth 2 err) url-http-codes)))))
-    (let ((results (funcall parser)))
-      (if results
-          (funcall (or displayfn #'message) results)
-        (message "0 definitions found")))))
 
 (defun define-word--parse-wordnik ()
   "Parse output from wordnik site and return formatted list"
