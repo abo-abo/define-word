@@ -131,8 +131,7 @@ In a non-interactive call SERVICE can be passed."
             ((and define-word-unpluralize
                   (cl-every (lambda (x) (string-match "[Pp]\\(?:lural\\|l\\.\\).*of \\(.*\\)\\." x))
                             results))
-             (define-word (match-string 1 (car (last results))) 'wordnik)
-             '("Fetching singular..."))
+             (define-word (match-string 1 (car (last results))) 'wordnik))
             (t
              (when (> (length results) define-word-limit)
                (setq results (cl-subseq results 0 define-word-limit)))
