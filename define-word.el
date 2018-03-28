@@ -87,7 +87,7 @@ lets the user choose service."
          (link (format (nth 1 servicedata) (downcase word)))
          (results
           (with-current-buffer (url-retrieve-synchronously link t t)
-            (setq results (funcall parser)))))
+            (funcall parser))))
     (if results
         (funcall displayfn results)
       (message "0 definitions found")
