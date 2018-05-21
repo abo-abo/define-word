@@ -90,7 +90,7 @@ lets the user choose service."
             (funcall parser))))
     (if results
         (funcall displayfn results)
-      (message "0 definitions found")
+      (funcall displayfn "0 definitions found")
       nil)))
 
 ;;;###autoload
