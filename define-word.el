@@ -54,7 +54,9 @@ The rule is that all definitions must contain \"Plural of\"."
   :type 'boolean)
 
 (defcustom define-word-services
-  '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik nil))
+  '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik nil)
+    (openthesaurus "https://www.openthesaurus.de/synonyme/%s"
+     define-word--parse-openthesaurus nil))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing [function-for-display])"
   :type '(alist :key-type (symbol :tag "Name of service")
@@ -146,6 +148,30 @@ In a non-interactive call SERVICE can be passed."
              (when (> (length results) define-word-limit)
                (setq results (cl-subseq results 0 define-word-limit)))
              (mapconcat #'identity results "\n"))))))
+
+(defun define-word--parse-openthesaurus ()
+  "Parse output from openthesaurus site and return formatted list"
+  (save-match-data
+    (let (results part beg)
+      (goto-char (point-min))
+      (nxml-mode)
+      (while (re-search-forward "<sup>" nil t)
+        (goto-char (match-beginning 0))
+        (setq beg (point))
+        (nxml-forward-element)
+        (delete-region beg (point)))
+      (goto-char (point-min))
+      (while (re-search-forward
+              "<span class='wiktionaryItem'> [0-9]+.</span>\\([^<]+\\)<" nil t)
+        (setq part (match-string 1))
+        (backward-char)
+        (push (string-trim part) results))
+      (setq results (nreverse results))
+      (if (= 0 (length results))
+          (message "0 definitions found")
+        (when (> (length results) define-word-limit)
+          (setq results (cl-subseq results 0 define-word-limit)))
+        (mapconcat #'identity results "\n")))))
 
 (provide 'define-word)
 
