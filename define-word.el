@@ -56,7 +56,8 @@ The rule is that all definitions must contain \"Plural of\"."
 (defcustom define-word-services
   '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik nil)
     (openthesaurus "https://www.openthesaurus.de/synonyme/%s"
-     define-word--parse-openthesaurus nil))
+		   define-word--parse-openthesaurus nil)
+    (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing [function-for-display])"
   :type '(alist :key-type (symbol :tag "Name of service")
@@ -148,6 +149,30 @@ In a non-interactive call SERVICE can be passed."
              (when (> (length results) define-word-limit)
                (setq results (cl-subseq results 0 define-word-limit)))
              (mapconcat #'identity results "\n"))))))
+
+(defun define-word--convert-html-tag-to-face (str)
+  "Replace semantical HTML markup in STR with the relevant faces."
+  (with-temp-buffer
+    (insert str)
+    (goto-char (point-min))
+    (while (re-search-forward "<em>\\(.*?\\)</em>" nil t)
+      (let ((match (match-string 1)))
+	(replace-match
+	 (propertize match 'face 'italic))))
+    (buffer-string)))
+
+(defun define-word--parse-webster ()
+  "Parse definition from webstersdictionary1828.com."
+  (save-match-data
+    (goto-char (point-min))
+    (let (results)
+      (while (re-search-forward "<p><strong>[[:digit:]]\\.</strong>\\(.*?\\)</p>" nil t)
+	(push (match-string 1) results))
+      (if (seq-empty-p results)
+	  "No results found."
+	(progn
+	  (setq results (nreverse (mapcar #'define-word--convert-html-tag-to-face results)))
+	  (mapconcat #'identity (seq-take results 10) "\n"))))))
 
 (defun define-word--parse-openthesaurus ()
   "Parse output from openthesaurus site and return formatted list"
