@@ -39,6 +39,7 @@
 
 (require 'url-parse)
 (require 'url-http)
+(require 'nxml-mode)
 
 (defgroup define-word nil
   "Define word at point using an online dictionary."
@@ -55,8 +56,7 @@ The rule is that all definitions must contain \"Plural of\"."
 
 (defcustom define-word-services
   '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik nil)
-    (openthesaurus "https://www.openthesaurus.de/synonyme/%s"
-		   define-word--parse-openthesaurus nil)
+    (openthesaurus "https://www.openthesaurus.de/synonyme/%s" define-word--parse-openthesaurus nil)
     (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing [function-for-display])"
@@ -155,24 +155,39 @@ In a non-interactive call SERVICE can be passed."
   (with-temp-buffer
     (insert str)
     (goto-char (point-min))
-    (while (re-search-forward "<em>\\(.*?\\)</em>" nil t)
-      (let ((match (match-string 1)))
-	(replace-match
-	 (propertize match 'face 'italic))))
+    (while (re-search-forward "<\\(em\\|i\\)>\\(.*?\\)</\\(em\\|i\\)>" nil t)
+      (let ((match (match-string 2)))
+        (replace-match
+         (propertize match 'face 'italic))))
     (buffer-string)))
 
 (defun define-word--parse-webster ()
   "Parse definition from webstersdictionary1828.com."
   (save-match-data
     (goto-char (point-min))
-    (let (results)
+    (let (results def-type)
       (while (re-search-forward "<p><strong>[[:digit:]]\\.</strong>\\(.*?\\)</p>" nil t)
-	(push (match-string 1) results))
+        (save-match-data
+          (save-excursion
+            (re-search-backward "<p><strong>[A-Z'.]*</strong>, <em>\\(.*?\\)</em>")
+            (let ((match (match-string 1)))
+              (setq def-type
+                    (cond
+                      ((equal match "adjective") "adj.")
+                      ((equal match "noun") "n.")
+                      ((equal match "verb intransitive") "v.")
+                      ((equal match "verb transitive") "vt.")
+                      (t ""))))))
+        (push
+         (concat
+          (propertize def-type 'face 'bold)
+          (define-word--convert-html-tag-to-face (match-string 1)))
+         results))
       (if (seq-empty-p results)
-	  "No results found."
-	(progn
-	  (setq results (nreverse (mapcar #'define-word--convert-html-tag-to-face results)))
-	  (mapconcat #'identity (seq-take results 10) "\n"))))))
+          "0 results found."
+        (progn
+          (setq results (seq-take (nreverse results) 10))
+          (mapconcat #'identity results "\n"))))))
 
 (defun define-word--parse-openthesaurus ()
   "Parse output from openthesaurus site and return formatted list"
