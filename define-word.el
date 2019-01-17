@@ -91,7 +91,11 @@ By default, `message' is used."
     (concat
      definition
      "\n" (match-string 1 definition) ":\n"
-     (define-word--to-string (match-string 1 definition) service))))
+     (mapconcat (lambda (s) (concat "  " s))
+                (split-string
+                 (define-word--to-string (match-string 1 definition) service)
+                 "\n")
+                "\n"))))
 
 ;;;###autoload
 (defun define-word (word service &optional choose-service)
