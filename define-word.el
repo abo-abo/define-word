@@ -49,27 +49,49 @@
 (defvar define-word-limit 10
   "Maximum amount of results to display.")
 
-(defcustom define-word-unpluralize t
-  "When non-nil, change the word to singular when appropriate.
-The rule is that all definitions must contain \"Plural of\"."
-  :type 'boolean)
+(defcustom define-word-displayfn-alist nil
+  "Alist for display functions per service.
+By default, `message' is used."
+  :type '(alist
+          :key-type (symbol :tag "Name of service")
+          :value-type (function :tag "Display function")))
+
+(defun define-word-displayfn (service)
+  "Return the display function for SERVICE."
+  (or (cdr (assoc service define-word-displayfn-alist))
+      #'message))
 
 (defcustom define-word-services
-  '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik nil)
-    (openthesaurus "https://www.openthesaurus.de/synonyme/%s" define-word--parse-openthesaurus nil)
+  '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik)
+    (openthesaurus "https://www.openthesaurus.de/synonyme/%s" define-word--parse-openthesaurus)
     (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing [function-for-display])"
-  :type '(alist :key-type (symbol :tag "Name of service")
+  :type '(alist
+          :key-type (symbol :tag "Name of service")
           :value-type (group
                        (string :tag "Url (%s denotes search word)")
-                       (function :tag "Parsing function")
-                       (choice (const nil) (function :tag "Display function")))))
+                       (function :tag "Parsing function"))))
 
 (defcustom define-word-default-service 'wordnik
   "The default service for define-word commands. Must be one of
   `define-word-services'"
   :type 'symbol)
+
+(defun define-word--to-string (word service)
+  "Get definition of WORD from SERVICE."
+  (let* ((servicedata (assoc service define-word-services))
+         (link (format (nth 1 servicedata) (downcase word)))
+         (parser (nth 2 servicedata)))
+    (with-current-buffer (url-retrieve-synchronously link t t)
+      (funcall parser))))
+
+(defun define-word--expand (regex definition service)
+  (when (string-match regex definition)
+    (concat
+     definition
+     "\n" (match-string 1 definition) ":\n"
+     (define-word--to-string (match-string 1 definition) service))))
 
 ;;;###autoload
 (defun define-word (word service &optional choose-service)
@@ -82,19 +104,18 @@ lets the user choose service."
                       (if choose-service
                           (intern
                            (completing-read
-                            "Service: " (mapcar #'car define-word-services)))
+                            "Service: " define-word-services))
                         define-word-default-service)))
-         (servicedata (assoc service define-word-services))
-         (parser (nth 2 servicedata))
-         (displayfn (or (nth 3 servicedata) #'message))
-         (link (format (nth 1 servicedata) (downcase word)))
-         (results
-          (with-current-buffer (url-retrieve-synchronously link t t)
-            (funcall parser))))
-    (if results
-        (funcall displayfn results)
-      (funcall displayfn "0 definitions found")
-      nil)))
+         (results (define-word--to-string word service)))
+
+    (funcall
+     (define-word-displayfn service)
+     (cond ((not results)
+            "0 definitions found")
+           ((define-word--expand "Plural form of \\(.*\\)\\.$" results service))
+           ((define-word--expand "past participle of \\(.*\\)\\.$" results service))
+           (t
+            results)))))
 
 ;;;###autoload
 (defun define-word-at-point (arg &optional service)
@@ -122,6 +143,14 @@ In a non-interactive call SERVICE can be passed."
   '((t :inherit default))
   "Face for the body of the definition")
 
+(defun define-word--join-results (results)
+  (mapconcat
+   #'identity
+   (if (> (length results) define-word-limit)
+       (cl-subseq results 0 define-word-limit)
+     results)
+   "\n"))
+
 (defun define-word--parse-wordnik ()
   "Parse output from wordnik site and return formatted list"
   (save-match-data
@@ -138,17 +167,8 @@ In a non-interactive call SERVICE can be passed."
                          (buffer-substring-no-properties beg (match-beginning 0))
                          'face 'define-word-face-2))
                 results)))
-      (setq results (nreverse results))
-      (cond ((= 0 (length results))
-             (message "0 definitions found"))
-            ((and define-word-unpluralize
-                  (cl-every (lambda (x) (string-match "[Pp]\\(?:lural\\|l\\.\\).*of \\(.*\\)\\." x))
-                            results))
-             (define-word (match-string 1 (car (last results))) 'wordnik))
-            (t
-             (when (> (length results) define-word-limit)
-               (setq results (cl-subseq results 0 define-word-limit)))
-             (mapconcat #'identity results "\n"))))))
+      (when (setq results (nreverse results))
+        (define-word--join-results results)))))
 
 (defun define-word--convert-html-tag-to-face (str)
   "Replace semantical HTML markup in STR with the relevant faces."
@@ -183,11 +203,8 @@ In a non-interactive call SERVICE can be passed."
           (propertize def-type 'face 'bold)
           (define-word--convert-html-tag-to-face (match-string 1)))
          results))
-      (if (seq-empty-p results)
-          "0 results found."
-        (progn
-          (setq results (seq-take (nreverse results) 10))
-          (mapconcat #'identity results "\n"))))))
+      (when (setq results (nreverse results))
+        (define-word--join-results results)))))
 
 (defun define-word--parse-openthesaurus ()
   "Parse output from openthesaurus site and return formatted list"
@@ -206,12 +223,8 @@ In a non-interactive call SERVICE can be passed."
         (setq part (match-string 1))
         (backward-char)
         (push (string-trim part) results))
-      (setq results (nreverse results))
-      (if (= 0 (length results))
-          (message "0 definitions found")
-        (when (> (length results) define-word-limit)
-          (setq results (cl-subseq results 0 define-word-limit)))
-        (mapconcat #'identity results "\n")))))
+      (when (setq results (nreverse results))
+        (define-word--join-results results)))))
 
 (provide 'define-word)
 
