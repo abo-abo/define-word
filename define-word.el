@@ -166,7 +166,7 @@ In a non-interactive call SERVICE can be passed."
   (save-match-data
     (goto-char (point-min))
     (let (results def-type)
-      (while (re-search-forward "<p><strong>[[:digit:]]\\.</strong>\\(.*?\\)</p>" nil t)
+      (while (re-search-forward "<p><strong>\\(?:[[:digit:]]\\.\\)?.*</strong>\\(.*?\\)</p>" nil t)
         (save-match-data
           (save-excursion
             (re-search-backward "<p><strong>[A-Z'.]*</strong>, <em>\\(.*?\\)</em>")
