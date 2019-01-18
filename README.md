@@ -1,3 +1,6 @@
+[![MELPA](https://melpa.org/packages/define-word-badge.svg)](https://melpa.org/#/define-word)
+[![MELPA Stable](https://stable.melpa.org/packages/define-word-badge.svg)](https://stable.melpa.org/#/define-word)
+
 ## Introduction
 
 `define-word` is a GNU Emacs package that lets you see the definition
