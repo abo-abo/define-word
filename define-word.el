@@ -117,7 +117,7 @@ lets the user choose service."
      (cond ((not results)
             "0 definitions found")
            ((define-word--expand "Plural form of \\(.*\\)\\.$" results service))
-           ((define-word--expand "past participle of \\(.*\\)\\.$" results service))
+           ((define-word--expand "Past participle of \\(.*\\)\\.$" results service))
            ((define-word--expand "Present participle of \\(.*\\)\\.$" results service))
            (t
             results)))))
