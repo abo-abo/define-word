@@ -66,7 +66,8 @@ By default, `message' is used."
     (openthesaurus "https://www.openthesaurus.de/synonyme/%s" define-word--parse-openthesaurus)
     (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster))
   "Services for define-word, A list of lists of the
-  format (symbol url function-for-parsing [function-for-display])"
+  format (symbol url function-for-parsing).
+Instead of an url string, url can be a custom function for retrieving results."
   :type '(alist
           :key-type (symbol :tag "Name of service")
           :value-type (group
@@ -81,10 +82,14 @@ By default, `message' is used."
 (defun define-word--to-string (word service)
   "Get definition of WORD from SERVICE."
   (let* ((servicedata (assoc service define-word-services))
-         (link (format (nth 1 servicedata) (downcase word)))
+         (retriever (nth 1 servicedata))
          (parser (nth 2 servicedata)))
-    (with-current-buffer (url-retrieve-synchronously link t t)
-      (funcall parser))))
+    (if (functionp retriever)
+        (funcall retriever word)
+      (with-current-buffer (url-retrieve-synchronously
+                            (format retriever (downcase word))
+                            t t)
+        (funcall parser)))))
 
 (defun define-word--expand (regex definition service)
   (when (string-match regex definition)
