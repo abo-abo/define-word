@@ -165,7 +165,7 @@ In a non-interactive call SERVICE can be passed."
   "Parse output from wordnik site and return formatted list"
   (save-match-data
     (let (results beg part)
-      (while (re-search-forward "<li><abbr[^>]*>\\([^<]*\\)</abbr>" nil t)
+      (while (re-search-forward "<li><abbr[^>]*>\\([^<]*\\)</abbr>\s<i></i>" nil t)
         (setq part (match-string 1))
         (unless (= 0 (length part))
           (setq part (concat part " ")))
