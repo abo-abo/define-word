@@ -161,6 +161,27 @@ In a non-interactive call SERVICE can be passed."
      results)
    "\n"))
 
+(defun define-word--regexp-to-face (regexp face)
+  (goto-char (point-min))
+  (while (re-search-forward regexp nil t)
+      (let ((match (match-string 1)))
+        (replace-match
+         (propertize match 'face face)))))
+
+(defconst define-word--tag-faces
+  '(("<\\(?:em\\|i\\)>\\(.*?\\)</\\(?:em\\|i\\)>" italic)
+    ("<xref>\\(.*?\\)</xref>" link)
+    ("<strong>\\(.*?\\)</strong>" bold)
+    ("<internalXref.*?>\\(.*?\\)</internalXref>" default)))
+
+(defun define-word--convert-html-tag-to-face (str)
+  "Replace semantical HTML markup in STR with the relevant faces."
+  (with-temp-buffer
+    (insert str)
+    (cl-loop for (regexp face) in define-word--tag-faces do
+             (define-word--regexp-to-face regexp face))
+    (buffer-string)))
+
 (defun define-word--parse-wordnik ()
   "Parse output from wordnik site and return formatted list"
   (save-match-data
@@ -178,18 +199,7 @@ In a non-interactive call SERVICE can be passed."
                          'face 'define-word-face-2))
                 results)))
       (when (setq results (nreverse results))
-        (define-word--join-results results)))))
-
-(defun define-word--convert-html-tag-to-face (str)
-  "Replace semantical HTML markup in STR with the relevant faces."
-  (with-temp-buffer
-    (insert str)
-    (goto-char (point-min))
-    (while (re-search-forward "<\\(em\\|i\\)>\\(.*?\\)</\\(em\\|i\\)>" nil t)
-      (let ((match (match-string 2)))
-        (replace-match
-         (propertize match 'face 'italic))))
-    (buffer-string)))
+        (define-word--convert-html-tag-to-face (define-word--join-results results))))))
 
 (defun define-word--parse-webster ()
   "Parse definition from webstersdictionary1828.com."
