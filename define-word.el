@@ -92,15 +92,16 @@ Instead of an url string, url can be a custom function for retrieving results."
         (funcall parser)))))
 
 (defun define-word--expand (regex definition service)
-  (when (string-match regex definition)
-    (concat
-     definition
-     "\n" (match-string 1 definition) ":\n"
-     (mapconcat (lambda (s) (concat "  " s))
-                (split-string
-                 (define-word--to-string (match-string 1 definition) service)
-                 "\n")
-                "\n"))))
+  (let ((case-fold-search nil))
+    (when (string-match regex definition)
+      (concat
+       definition
+       "\n" (match-string 1 definition) ":\n"
+       (mapconcat (lambda (s) (concat "  " s))
+                  (split-string
+                   (define-word--to-string (match-string 1 definition) service)
+                   "\n")
+                  "\n")))))
 
 ;;;###autoload
 (defun define-word (word service &optional choose-service)
