@@ -90,7 +90,6 @@ Instead of an url string, url can be a custom function for retrieving results."
       ;; adapted `url-insert-file-contents'
       (let ((buffer (url-retrieve-synchronously url t t)))
         (with-temp-buffer
-          (url-http--insert-file-helper buffer url)
           (url-insert-buffer-contents buffer url)
           (funcall parser))))))
 
