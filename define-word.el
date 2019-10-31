@@ -83,13 +83,16 @@ Instead of an url string, url can be a custom function for retrieving results."
   "Get definition of WORD from SERVICE."
   (let* ((servicedata (assoc service define-word-services))
          (retriever (nth 1 servicedata))
-         (parser (nth 2 servicedata)))
+         (parser (nth 2 servicedata))
+         (url (format retriever (downcase word))))
     (if (functionp retriever)
         (funcall retriever word)
-      (with-current-buffer (url-retrieve-synchronously
-                            (format retriever (downcase word))
-                            t t)
-        (funcall parser)))))
+      ;; adapted `url-insert-file-contents'
+      (let ((buffer (url-retrieve-synchronously url t t)))
+        (with-temp-buffer
+          (url-http--insert-file-helper buffer url)
+          (url-insert-buffer-contents buffer url)
+          (funcall parser))))))
 
 (defun define-word--expand (regex definition service)
   (let ((case-fold-search nil))
@@ -165,9 +168,9 @@ In a non-interactive call SERVICE can be passed."
 (defun define-word--regexp-to-face (regexp face)
   (goto-char (point-min))
   (while (re-search-forward regexp nil t)
-      (let ((match (match-string 1)))
-        (replace-match
-         (propertize match 'face face)))))
+    (let ((match (match-string 1)))
+      (replace-match
+       (propertize match 'face face)))))
 
 (defconst define-word--tag-faces
   '(("<\\(?:em\\|i\\)>\\(.*?\\)</\\(?:em\\|i\\)>" italic)
@@ -180,7 +183,7 @@ In a non-interactive call SERVICE can be passed."
   (with-temp-buffer
     (insert str)
     (cl-loop for (regexp face) in define-word--tag-faces do
-             (define-word--regexp-to-face regexp face))
+         (define-word--regexp-to-face regexp face))
     (buffer-string)))
 
 (defun define-word--parse-wordnik ()
