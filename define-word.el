@@ -83,12 +83,12 @@ Instead of an url string, url can be a custom function for retrieving results."
   "Get definition of WORD from SERVICE."
   (let* ((servicedata (assoc service define-word-services))
          (retriever (nth 1 servicedata))
-         (parser (nth 2 servicedata))
-         (url (format retriever (downcase word))))
+         (parser (nth 2 servicedata)))
     (if (functionp retriever)
         (funcall retriever word)
       ;; adapted `url-insert-file-contents'
-      (let ((buffer (url-retrieve-synchronously url t t)))
+      (let* ((url (format retriever (downcase word)))
+             (buffer (url-retrieve-synchronously url t t)))
         (with-temp-buffer
           (url-insert-buffer-contents buffer url)
           (funcall parser))))))
