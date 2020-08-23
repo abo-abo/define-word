@@ -138,15 +138,18 @@ Prefix ARG lets you choose service.
 
 In a non-interactive call SERVICE can be passed."
   (interactive "P")
-  (if (use-region-p)
-      (define-word
-          (buffer-substring-no-properties
-           (region-beginning)
-           (region-end))
-          service arg)
-    (define-word (substring-no-properties
-                  (thing-at-point 'word))
-        service arg)))
+  (print arg)
+  (cond ((string-equal major-mode "pdf-view-mode") (define-word
+                                                     (car (pdf-view-active-region-text))
+                                                     service arg))
+        ((use-region-p) (define-word
+                          (buffer-substring-no-properties
+                           (region-beginning)
+                           (region-end))
+                          service arg))
+        (t (define-word (substring-no-properties
+                         (thing-at-point 'word))
+             service arg))))
 
 (defface define-word-face-1
   '((t :inherit font-lock-keyword-face))
