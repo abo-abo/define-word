@@ -140,6 +140,8 @@ In a non-interactive call SERVICE can be passed."
   (interactive "P")
   (let ((word
          (cond
+          ((eq major-mode 'pdf-view-mode)
+           (car (pdf-view-active-region-text)))
           ((use-region-p)
            (buffer-substring-no-properties
             (region-beginning)
