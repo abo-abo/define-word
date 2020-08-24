@@ -130,6 +130,8 @@ lets the user choose service."
            (t
             results)))))
 
+(declare-function pdf-view-active-region-text "ext:pdf-view")
+
 ;;;###autoload
 (defun define-word-at-point (arg &optional service)
   "Use `define-word' to define word at point.
