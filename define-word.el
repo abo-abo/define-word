@@ -64,7 +64,8 @@ By default, `message' is used."
 (defcustom define-word-services
   '((wordnik "http://wordnik.com/words/%s" define-word--parse-wordnik)
     (openthesaurus "https://www.openthesaurus.de/synonyme/%s" define-word--parse-openthesaurus)
-    (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster))
+    (webster "http://webstersdictionary1828.com/Dictionary/%s" define-word--parse-webster)
+    (offline-wikitionary define-word--get-offline-wikitionary nil))
   "Services for define-word, A list of lists of the
   format (symbol url function-for-parsing).
 Instead of an url string, url can be a custom function for retrieving results."
@@ -77,7 +78,27 @@ Instead of an url string, url can be a custom function for retrieving results."
 (defcustom define-word-default-service 'wordnik
   "The default service for define-word commands. Must be one of
   `define-word-services'"
-  :type 'symbol)
+  :type '(choice
+          (const wordnik)
+          (const openthesaurus)
+          (const webster)
+          (const offline-wikitionary)
+          symbol))
+
+(defvar define-word-offline-dict-directory nil
+  "Path to the directory which contains \"en-en-withforms-enwiktionary.txt\".")
+
+(defun define-word--get-offline-wikitionary (word)
+  (unless define-word-offline-dict-directory
+    (let ((url "https://en.wiktionary.org/wiki/User:Matthias_Buchmeier/download"))
+      (user-error "Please download the ding (text-format) zip from %s and configure `%S'." url
+                  'define-word-offline-dict-directory)))
+  (let* ((regex (concat "^" word " "))
+         (default-directory define-word-offline-dict-directory)
+         (res (shell-command-to-string
+               (concat "rg --no-filename --color never '" regex "'"))))
+    (unless (= 0 (length res))
+      res)))
 
 (defun define-word--to-string (word service)
   "Get definition of WORD from SERVICE."
