@@ -183,7 +183,7 @@ In a non-interactive call SERVICE can be passed."
 	     (propertize (replace-regexp-in-string regexp rep match) 'face face)))))
 
 (defconst define-word--tag-faces
-  '(("<\\(?:em\\|i\\)>\\(.*?\\)</\\(?:em\\|i\\)>" "\\2" italic)
+  '(("<\\(em\\|i\\)>\\(.*?\\)</\\(em\\|i\\)>" "\\2" italic)
     ("<xref>\\(.*?\\)</xref>" "\\1" link)
     ("<strong>\\(.*?\\)</strong>" "\\1" bold)
     ("<internalXref.*?>\\(.*?\\)</internalXref>" "\\1" default)
@@ -238,11 +238,11 @@ It is locally used by service and has higher priority than `define-word--tag-fac
             (let ((match (match-string 1)))
               (setq def-type
                     (cond
-                      ((equal match "adjective") "adj.")
-                      ((equal match "noun") "n.")
-                      ((equal match "verb intransitive") "v.")
-                      ((equal match "verb transitive") "vt.")
-                      (t ""))))))
+                     ((equal match "adjective") "adj.")
+                     ((equal match "noun") "n.")
+                     ((equal match "verb intransitive") "v.")
+                     ((equal match "verb transitive") "vt.")
+                     (t ""))))))
         (push
          (concat
           (propertize def-type 'face 'bold)
@@ -275,57 +275,61 @@ It is locally used by service and has higher priority than `define-word--tag-fac
   "Parse output from larousse site and return formatted list"
   (save-match-data
     (let (results
-	        entity
-	        nature
-	        etymo
-	        (larousse-regex-to-faces
-	         '(("<span class=\"ExempleDefinition\">\\(.*?\\)</span>" "\\1" define-word-face-3)
-	           ("<p class=\"RubriqueDefinition\">\\(.*?\\)</p>" "(\\1) " font-lock-constant-face)
-	           ("<p class=\"SousDivision\">\\(.*?\\)</p>" "\n\\1" default)
-	           ("<span class=\"num-loc\">\\(.*?\\)</span>" "  - \\1 " default)
-	           ("<span class=\"small\">\\(.*?\\)</span>" "\\1" default)
-	           ("<span class=\"IndicateurDefinition\">\\(.*?\\)</span>" "\\1" italic)
-	           ("<span class=\"RemarqueDefinition\">\\(.*?\\)</span>" "\\1" italic)
-	           ("<span class=\"Renvois\"><a class=\"lienarticle\" href=\"\\(.*?\\)\">\\(.*?\\)</a></span>" "\\2" link)
-	           ("<a class=\"lienconj\"\\(.*?\\)</a>" "" default)
-	           ("<p class=\"OrigineDefinition\">\\(.*?\\)</p>" "\\1" default))))
+	  entity
+	  nature
+	  etymo
+	  (larousse-regex-to-faces
+	   '(("<span class=\"ExempleDefinition\">\\(.*?\\)</span>" "\\1" define-word-face-3)
+	     ("<p class=\"RubriqueDefinition\">\\(.*?\\)</p>" "(\\1) " font-lock-constant-face)
+	     ("<p class=\"SousDivision\">\\(.*?\\)</p>" "\n\\1" default)
+	     ("<span class=\"num-loc\">\\(.*?\\)</span>" "  - \\1 " default)
+	     ("<span class=\"CatgramDefinition\">\\(.*?\\)</span>" "\\1 " default)
+	     ("<span class=\"ReformeOrtho\">\\(.*?\\)</span>" "\\1 " default)
+	     ("<span class=\"AdresseRefOrtho\">\\(.*?\\)</span>" "\\1 " default)
+	     ("<span class=\"lien\">\\(.*?\\)</span>" "\\1 " italic)
+	     ("<span class=\"small\">\\(.*?\\)</span>" "\\1" default)
+	     ("<span class=\"\\(I\\|i\\)ndicateurDefinition\">\\(.*?\\)</span>" "\\2" font-lock-constant-face)
+	     ("<span class=\"RemarqueDefinition\">\\(.*?\\)</span>" "\\1" italic)
+	     ("<span class=\"Renvois\"><a class=\"lienarticle\" href=\"\\(.*?\\)\">\\(.*?\\)</a></span>" "\\2" link)
+	     ("<a class=\"lienconj\"\\(.*?\\)</a>" "" default)
+	     ("<p class=\"OrigineDefinition\">\\(.*?\\)</p>" "\\1" default))))
       (let (beg substr)
-	      (when (re-search-forward "<h2 class=\"AdresseDefinition\">" nil t)
-	        (setq beg (match-end 0))
-	        (when (re-search-forward "</h2>" nil t)
-	          (setq substr (define-word-html-entities-to-unicode (buffer-substring beg (match-beginning 0))))
-	          (setq entity (propertize
-                          (replace-regexp-in-string
-                           "\\(<.*?>.*?</.*?>\\)*?\\([^<]*?\\)\\(<.*?>.*?</.*?>\\)*" "\\2"
-	                         (define-word--convert-html-tag-to-face
+	(when (re-search-forward "<h2 class=\"AdresseDefinition\">.*?</audio>" nil t)
+	  (setq beg (match-end 0))
+	  (when (re-search-forward "</h2>" nil t)
+	    (setq substr (define-word-html-entities-to-unicode (buffer-substring beg (match-beginning 0))))
+	    (message "%s" substr)
+	    (setq entity (propertize
+	                   (define-word--convert-html-tag-to-face
                              substr
-                             larousse-regex-to-faces))
+                             larousse-regex-to-faces)
                           'face 'bold)))))
       ;; nature of word
       (when (re-search-forward "<p class=\"CatgramDefinition\">\\(.*?\\)</p>" nil t)
-	      (setq nature (propertize (match-string 1) 'face 'define-word-face-1)))
+	(setq nature (propertize (match-string 1) 'face 'define-word-face-1)))
       ;; word's origin
       (let (beg substr)
-	      (when (re-search-forward "<p class=\"OrigineDefinition\">" nil t)
-	        (setq beg (match-beginning 0))
-	        (when (re-search-forward "</p>" nil t)
-	          (setq etymo (define-word-html-entities-to-unicode (buffer-substring beg (match-end 0)))))))
+	;; </p><p class="OrigineDefinition">(latin ecclésiastique <i>impassibilis</i>, sans passions)</p>
+	(when (re-search-forward "<p class=\"OrigineDefinition\">" nil t)
+	  (setq beg (match-beginning 0))
+	  (when (re-search-forward "</p>" nil t)
+	    (setq etymo (define-word-html-entities-to-unicode (buffer-substring beg (match-end 0)))))))
       (when entity
-	      (push (format "%s%s%s" entity
-		                  (if nature (format " : %s" (string-trim nature)) "")
-		                  (if etymo (format " | étymologie : %s" etymo) ""))
-	            results))
+	(push (format "%s%s%s" entity
+		      (if nature (format " : %s" (string-trim nature)) "")
+ 		      (if etymo (format " | étymologie : %s" etymo) ""))
+	      results))
       ;; Definition item
       (while (re-search-forward "<li class=\"DivisionDefinition\">\\([^<]*\\)" nil t)
-	      (let (beg substr)
-	        (setq beg (match-beginning 1))
-	        (when (re-search-forward "</li>" nil t)
-	          (setq substr (define-word-html-entities-to-unicode (buffer-substring beg (match-beginning 0))))
-	          (push (concat "- " substr) results))))
+	(let (beg substr)
+	  (setq beg (match-beginning 1))
+	  (when (re-search-forward "</li>" nil t)
+	    (setq substr (define-word-html-entities-to-unicode (buffer-substring beg (match-beginning 0))))
+	    (push (concat "- " substr) results))))
       (when (setq results (nreverse results))
-	      (define-word--convert-html-tag-to-face
-	        (define-word--join-results results)
-	        larousse-regex-to-faces)))))
+	(define-word--convert-html-tag-to-face
+	  (define-word--join-results results)
+	  larousse-regex-to-faces)))))
 (provide 'define-word)
 
 ;;; define-word.el ends here
