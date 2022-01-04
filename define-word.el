@@ -104,7 +104,11 @@ Instead of an url string, url can be a custom function for retrieving results."
   "Get definition of WORD from SERVICE."
   (let* ((servicedata (assoc service define-word-services))
          (retriever (nth 1 servicedata))
-         (parser (nth 2 servicedata)))
+         (parser (nth 2 servicedata))
+         (url-user-agent
+          (if (eq (nth 0 servicedata) 'wordnik)
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_5_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36"
+            url-user-agent)))
     (if (functionp retriever)
         (funcall retriever word)
       ;; adapted `url-insert-file-contents'
